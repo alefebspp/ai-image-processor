@@ -1,18 +1,40 @@
 import Fastify from 'fastify';
-import "reflect-metadata"
-import { AppError } from './domain/errors/AppError';
-import server from './server';
-import '../src/infra/database/typeorm.config'
+import path from 'path';
+import { AppError } from './errors/AppError';
+import measurementRoutes from './presentation/routes/measurement.routes';
+import { ZodError } from 'zod';
 
+const app = Fastify();
 
-const start = async () => {
-  try {
-    await server.listen({ port: 3000 });
-    console.log('Server listening on http://localhost:3000');
-  } catch (err) {
-    server.log.error(err);
-    process.exit(1);
+app.register(require('@fastify/static'), {
+  root: path.join(__dirname, './temp'), 
+  prefix: '/images/',
+});
+
+measurementRoutes(app)
+
+app.setErrorHandler(function (error, request, reply) {
+  if (error instanceof AppError) {
+    const errorObject = {
+      error_description: error.message,
+    }
+
+    if(error.errorCode){
+      Object.assign(errorObject, {
+        error_code: error.errorCode
+      })
+    }
+    return reply.status(error.statusCode).send(errorObject)
   }
-};
+  
+  if (error instanceof ZodError) {
+    return reply.status(400).send({
+      error_code: "INVALID_DATA",
+      error_description: "Os dados fornecidos no corpo da requisição são inválidos",
+    });
+  }
+  console.log("ERROR:", error)
+   reply.status(500).send({ message: "Internal server error" })
+})
 
-start();
+export default app

@@ -1,11 +1,25 @@
 version: '3'
 
 services:
-  mana-project:
+  db:
     image: bitnami/postgresql
     ports:
       - 5432:5432
     environment:
-      - POSTGRESQL_USERNAME=user
-      - POSTGRESQL_PASSWORD=user
-      - POSTGRESQL_DATABASE=shopper
+      - POSTGRESQL_USERNAME=${DATABASE_USER}
+      - POSTGRESQL_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRESQL_DATABASE=${DATABASE_NAME}
+
+  app:
+    build: .
+    ports:
+      - 8080:8080
+    depends_on:
+      - db
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - API_URL=${API_URL}
+      - DATABASE_HOST=${DATABASE_HOST}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_NAME=${DATABASE_NAME}
